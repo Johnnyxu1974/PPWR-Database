@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPWR 思维导图式核查库</title>
+  <style>
+    :root {
+      --bg: #f5ecdd;
+      --panel: rgba(255, 251, 244, 0.9);
+      --panel-strong: #fffdf9;
+      --ink: #271c15;
+      --muted: #6e5f53;
+      --line: rgba(98, 73, 50, 0.12);
+      --accent: #0c5f4d;
+      --accent-soft: rgba(12, 95, 77, 0.12);
+      --danger: #9a4d2b;
+      --danger-soft: rgba(154, 77, 43, 0.12);
+      --warning: #8b6811;
+      --warning-soft: rgba(139, 104, 17, 0.12);
+      --info: #40577c;
+      --info-soft: rgba(64, 87, 124, 0.12);
+      --shadow: 0 24px 60px rgba(59, 41, 28, 0.12);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.75), transparent 24%),
+        radial-gradient(circle at 88% 12%, rgba(12, 95, 77, 0.12), transparent 20%),
+        linear-gradient(145deg, #efe3cf 0%, #f8f3ea 48%, #ede0cf 100%);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.26), transparent 75%);
+    }
+
+    .shell {
+      max-width: 1520px;
+      margin: 0 auto;
+      padding: 18px 16px 30px;
+    }
+
+    h1, h2, h3 {
+      font-family: "Songti SC", "STSong", "Noto Serif SC", Georgia, serif;
+      letter-spacing: -0.03em;
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      box-shadow: var(--shadow);
+      padding: 26px;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      top: -110px;
+      width: 260px;
+      height: 260px;
+      border-radius: 999px;
+      background: rgba(12, 95, 77, 0.1);
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(12, 95, 77, 0.12);
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin: 14px 0 8px;
+      font-size: clamp(36px, 4vw, 58px);
+      line-height: 0.98;
+      max-width: 14ch;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 86ch;
+      color: var(--muted);
+      line-height: 1.72;
+    }
+
+    .hero-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .hero-links a,
+    .hero-links button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--ink);
+      padding: 11px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid rgba(98, 73, 50, 0.1);
+      cursor: pointer;
+      font: inherit;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .hero-links a:hover,
+    .hero-links button:hover {
+      transform: translateY(-1px);
+      background: #fff;
+      border-color: rgba(12, 95, 77, 0.2);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .flow,
+    .detail {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .detail {
+      position: sticky;
+      top: 16px;
+      min-height: 82vh;
+      display: grid;
+      gap: 14px;
+    }
+
+    .breadcrumb {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .crumb {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(98, 73, 50, 0.1);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      transition: border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .crumb:hover {
+      transform: translateY(-1px);
+      border-color: rgba(12, 95, 77, 0.18);
+    }
+
+    .crumb.current {
+      color: var(--accent);
+      border-color: rgba(12, 95, 77, 0.3);
+    }
+
+    .flow-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .flow-head h2 {
+      margin: 0 0 6px;
+      font-size: 30px;
+      line-height: 1.02;
+    }
+
+    .flow-head p,
+    .muted {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.66;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .ghost {
+      border: 1px solid rgba(98, 73, 50, 0.1);
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--ink);
+      border-radius: 16px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .ghost:hover {
+      border-color: rgba(12, 95, 77, 0.18);
+    }
+
+    .focus-card,
+    .detail-hero,
+    .detail-block {
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid rgba(98, 73, 50, 0.08);
+      border-radius: 22px;
+      padding: 18px;
+    }
+
+    .focus-card {
+      margin-bottom: 16px;
+      background:
+        radial-gradient(circle at top right, rgba(12, 95, 77, 0.1), transparent 34%),
+        rgba(255, 255, 255, 0.68);
+    }
+
+    .focus-card h3,
+    .detail-hero h2 {
+      margin: 10px 0 8px;
+      line-height: 1.02;
+    }
+
+    .detail-hero h2 {
+      font-size: 36px;
+    }
+
+    .focus-card h3 {
+      font-size: 30px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(98, 73, 50, 0.08);
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .kind {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .kind-root,
+    .kind-material,
+    .kind-scenario {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .kind-guide {
+      color: var(--warning);
+      background: var(--warning-soft);
+    }
+
+    .kind-topic {
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .kind-article {
+      color: var(--info);
+      background: var(--info-soft);
+    }
+
+    .nodes {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .node {
+      background: var(--panel-strong);
+      border: 1px solid rgba(98, 73, 50, 0.1);
+      border-radius: 24px;
+      padding: 18px;
+      min-height: 182px;
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      animation: riseIn 0.45s ease both;
+    }
+
+    .node:hover {
+      transform: translateY(-2px);
+      border-color: rgba(12, 95, 77, 0.2);
+      box-shadow: 0 14px 30px rgba(59, 41, 28, 0.08);
+    }
+
+    .node.active {
+      border-color: rgba(12, 95, 77, 0.4);
+      box-shadow: 0 14px 30px rgba(12, 95, 77, 0.14);
+    }
+
+    .node h3 {
+      margin: 12px 0 8px;
+      font-size: 25px;
+      line-height: 1.02;
+    }
+
+    .node p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.68;
+      font-size: 14px;
+    }
+
+    .node.minimal {
+      min-height: 132px;
+    }
+
+    .node.minimal p {
+      display: none;
+    }
+
+    .detail-block h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .detail-block p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.76;
+    }
+
+    .detail-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .detail-links button,
+    .detail-links a {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(98, 73, 50, 0.1);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--ink);
+      border-radius: 16px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font: inherit;
+      text-decoration: none;
+    }
+
+    .detail-links button:hover,
+    .detail-links a:hover {
+      border-color: rgba(12, 95, 77, 0.18);
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.74;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 220px;
+      text-align: center;
+      border-radius: 24px;
+      border: 1px dashed rgba(98, 73, 50, 0.18);
+      background: rgba(255, 255, 255, 0.34);
+      color: var(--muted);
+      padding: 22px;
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 1240px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .detail {
+        position: static;
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .nodes {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell {
+        padding: 12px 10px 24px;
+      }
+
+      .hero,
+      .flow,
+      .detail {
+        padding: 16px;
+        border-radius: 24px;
+      }
+
+      .nodes {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-tag">PPWR 阅读导航</div>
+      <h1 id="heroTitle"></h1>
+      <p id="heroText"></p>
+      <div class="hero-links" id="heroLinks"></div>
+    </section>
+
+    <section class="layout">
+      <main class="flow">
+        <div class="breadcrumb" id="breadcrumb"></div>
+
+        <div class="flow-head">
+          <div>
+            <h2 id="flowTitle"></h2>
+            <p id="flowText"></p>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="ghost" id="goHome">主页</button>
+          <button class="ghost" id="goUp">返回上一级</button>
+        </div>
+
+        <section class="focus-card" id="focusCard"></section>
+        <section class="nodes" id="nodes"></section>
+      </main>
+
+      <aside class="detail" id="detail"></aside>
+    </section>
+  </div>
+
+  <script src="./ppwr_database.js"></script>
+  <script>
+    const db = window.PPWR_DB;
+
+    const rootNodes = [
+      {
+        id: "materials_root",
+        type: "root",
+        label: "材料库",
+        title: "材料库",
+        summary: "按 15 种材料查看适用条文、限制条件和阅读说明。",
+        badges: ["15 种材料"],
+        children: db.materials.map((item) => item.id)
+      },
+      {
+        id: "scenarios_root",
+        type: "root",
+        label: "场景要求",
+        title: "场景要求",
+        summary: "按使用场景查看最关键的法规要求、限制和条文链接。",
+        badges: [`${db.scenarios.length} 个场景`],
+        children: db.scenarios.map((item) => item.id)
+      },
+      {
+        id: "guides_root",
+        type: "root",
+        label: "判断方式",
+        title: "判断方式",
+        summary: "把法规判断拆成必须符合、明确禁止、有条件符合和待细化事项。",
+        badges: [`${db.judgementGuide.length} 类判断`],
+        children: db.judgementGuide.map((item) => item.id)
+      },
+      {
+        id: "topics_root",
+        type: "root",
+        label: "专题问题",
+        title: "专题问题",
+        summary: "集中查看 PFAS、最小化、标签、回收设计参数等高频专题。",
+        badges: [`${db.otherTopics.length} 个专题`],
+        children: db.otherTopics.map((item) => item.id)
+      },
+      {
+        id: "articles_root",
+        type: "root",
+        label: "条文目录",
+        title: "条文目录",
+        summary: "按条文顺序浏览，直接查看英文关键内容、中文翻译和内容解读。",
+        badges: [`${db.articles.length} 个条文入口`],
+        children: db.articles.slice().sort((a, b) => a.order - b.order).map((item) => item.id)
+      }
+    ];
+
+    const materialNodes = db.materials.map((item) => ({
+      id: item.id,
+      type: "material",
+      label: item.name,
+      title: item.name,
+      summary: item.interpretation,
+      badges: [item.family, item.category],
+      children: item.relatedArticles
+    }));
+
+    const scenarioNodes = db.scenarios.map((item) => ({
+      id: item.id,
+      type: "scenario",
+      label: item.name,
+      title: item.name,
+      summary: item.interpretation,
+      badges: ["场景"],
+      children: item.relatedArticles
+    }));
+
+    const guideNodes = db.judgementGuide.map((item) => ({
+      id: item.id,
+      type: "guide",
+      label: item.name,
+      title: item.name,
+      summary: item.interpretation,
+      badges: ["判断逻辑"],
+      children: item.relatedArticles
+    }));
+
+    const topicNodes = db.otherTopics.map((item) => ({
+      id: item.id,
+      type: "topic",
+      label: item.name,
+      title: item.name,
+      summary: item.interpretation,
+      badges: ["专题问题"],
+      children: item.relatedArticles
+    }));
+
+    const articleNodes = db.articles.map((item) => ({
+      id: item.id,
+      type: "article",
+      label: item.label,
+      title: `${item.label} · ${item.title}`,
+      summary: item.chineseText,
+      badges: [item.kind],
+      children: []
+    }));
+
+    const nodeMap = new Map(
+      [...rootNodes, ...materialNodes, ...scenarioNodes, ...guideNodes, ...topicNodes, ...articleNodes]
+        .map((item) => [item.id, item])
+    );
+
+    const state = {
+      path: []
+    };
+
+    const el = {
+      heroTitle: document.getElementById("heroTitle"),
+      heroText: document.getElementById("heroText"),
+      heroLinks: document.getElementById("heroLinks"),
+      breadcrumb: document.getElementById("breadcrumb"),
+      flowTitle: document.getElementById("flowTitle"),
+      flowText: document.getElementById("flowText"),
+      focusCard: document.getElementById("focusCard"),
+      nodes: document.getElementById("nodes"),
+      detail: document.getElementById("detail"),
+      goHome: document.getElementById("goHome"),
+      goUp: document.getElementById("goUp")
+    };
+
+    function getKindClass(type) {
+      return `kind-${type}`;
+    }
+
+    function currentNode() {
+      return state.path.length ? nodeMap.get(state.path[state.path.length - 1]) : null;
+    }
+
+    function currentChildren() {
+      const current = currentNode();
+      if (!current) return rootNodes;
+      return (current.children || []).map((id) => nodeMap.get(id)).filter(Boolean);
+    }
+
+    function navigateTo(id) {
+      const index = state.path.indexOf(id);
+      if (index !== -1) {
+        state.path = state.path.slice(0, index + 1);
+      } else {
+        state.path.push(id);
+      }
+      render();
+    }
+
+    function goHome() {
+      state.path = [];
+      render();
+    }
+
+    function goUp() {
+      if (!state.path.length) return;
+      state.path = state.path.slice(0, -1);
+      render();
+    }
+
+    function renderHero() {
+      el.heroTitle.textContent = db.meta.title;
+      el.heroText.textContent = `${db.meta.subtitle}。${db.meta.note}`;
+      el.heroLinks.innerHTML = "";
+      db.sourceLinks.forEach((item) => {
+        const a = document.createElement("a");
+        a.href = item.href;
+        a.textContent = item.label;
+        a.target = item.href.startsWith("http") ? "_blank" : "_self";
+        if (a.target === "_blank") a.rel = "noreferrer";
+        el.heroLinks.appendChild(a);
+      });
+    }
+
+    function renderBreadcrumb() {
+      const crumbs = [{ id: "__home__", label: "主页" }, ...state.path.map((id) => ({ id, label: nodeMap.get(id)?.label || id }))];
+      el.breadcrumb.innerHTML = "";
+      crumbs.forEach((crumb, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `crumb ${index === crumbs.length - 1 ? "current" : ""}`.trim();
+        button.textContent = crumb.label;
+        button.addEventListener("click", () => {
+          if (crumb.id === "__home__") {
+            goHome();
+            return;
+          }
+          navigateTo(crumb.id);
+        });
+        el.breadcrumb.appendChild(button);
+      });
+    }
+
+    function renderFlowHeader() {
+      const current = currentNode();
+      if (!current) {
+        el.flowTitle.textContent = "主页";
+        el.flowText.textContent = "请选择一个主题开始浏览。每个主题下都提供对应内容说明和条文链接。";
+        return;
+      }
+      el.flowTitle.textContent = current.title;
+      el.flowText.textContent = current.summary;
+    }
+
+    function renderFocusCard() {
+      const current = currentNode();
+      if (!current) {
+        el.focusCard.innerHTML = `
+          <span class="kind kind-root">阅读说明</span>
+          <h3>PPWR 内容导航</h3>
+          <p class="muted">可从材料、场景、判断方式、专题问题或条文目录进入。每一层都会显示对应说明，并提供进入下一层或查看条文的入口。</p>
+          <div class="badge-row" style="margin-top: 12px;">
+            <span class="badge">${db.materials.length} 种材料</span>
+            <span class="badge">${db.scenarios.length} 个场景</span>
+            <span class="badge">${db.judgementGuide.length} 类判断</span>
+            <span class="badge">${db.otherTopics.length} 个专题</span>
+            <span class="badge">${db.articles.length} 个条文入口</span>
+          </div>
+        `;
+        return;
+      }
+
+      const badges = current.badges || [];
+      el.focusCard.innerHTML = `
+        <span class="kind ${getKindClass(current.type)}">${current.type === "article" ? "条文" : current.type === "root" ? "主题" : current.label}</span>
+        <h3>${current.title}</h3>
+        <p class="muted">${current.summary}</p>
+        ${badges.length ? `<div class="badge-row" style="margin-top: 12px;">${badges.map((badge) => `<span class="badge">${badge}</span>`).join("")}</div>` : ""}
+      `;
+    }
+
+    function renderNodes() {
+      const children = currentChildren();
+      el.nodes.innerHTML = "";
+
+      if (!children.length) {
+        el.nodes.innerHTML = `
+          <div class="empty">
+            <div>
+              <h3>已经到最后一级</h3>
+              <p>右侧现在显示的是这个节点的具体内容。你可以点面包屑返回上一级继续选择。</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      children.forEach((node, index) => {
+        const card = document.createElement("article");
+        const minimal = node.type === "article" && currentNode()?.type === "article";
+        card.className = `node ${minimal ? "minimal" : ""} ${state.path.includes(node.id) ? "active" : ""}`.trim();
+        card.style.animationDelay = `${Math.min(index * 0.03, 0.36)}s`;
+        const leadingBadge = node.type === "article" ? "条文" :
+          node.type === "material" ? "" :
+          node.type === "scenario" ? "" :
+          node.type === "guide" ? "" :
+          node.type === "topic" ? "" :
+          "";
+        card.innerHTML = `
+          <div class="badge-row">
+            ${leadingBadge ? `<span class="badge">${leadingBadge}</span>` : ""}
+            ${(node.badges || []).slice(0, 2).map((badge) => `<span class="badge">${badge}</span>`).join("")}
+          </div>
+          <h3>${node.label}</h3>
+          <p>${node.summary}</p>
+        `;
+        card.addEventListener("click", () => navigateTo(node.id));
+        el.nodes.appendChild(card);
+      });
+    }
+
+    function buildArticleButtons(ids) {
+      return ids.map((id) => {
+        const article = db.articles.find((item) => item.id === id);
+        if (!article) return "";
+        return `<button type="button" data-article="${article.id}">${article.label}</button>`;
+      }).join("");
+    }
+
+    function bindDetailEvents() {
+      el.detail.querySelectorAll("[data-article]").forEach((button) => {
+        button.addEventListener("click", () => navigateTo(button.dataset.article));
+      });
+      el.detail.querySelectorAll("[data-node]").forEach((button) => {
+        button.addEventListener("click", () => navigateTo(button.dataset.node));
+      });
+    }
+
+    function renderArticleDetail(article) {
+      const materialNames = article.appliesTo.materials.map((id) => db.materials.find((item) => item.id === id)?.name).filter(Boolean);
+      const scenarioNames = article.appliesTo.scenarios.map((id) => db.scenarios.find((item) => item.id === id)?.name).filter(Boolean);
+
+      el.detail.innerHTML = `
+        <section class="detail-hero">
+          <span class="kind kind-article">${article.kind}</span>
+          <div class="badge-row" style="margin-top: 10px;">
+            <span class="badge">${article.label}</span>
+            <span class="badge">${article.title}</span>
+          </div>
+          <h2>${article.label}</h2>
+          <p>${article.title}</p>
+        </section>
+
+        <section class="detail-block">
+          <h3>英文关键内容</h3>
+          <p>${article.englishText}</p>
+        </section>
+
+        <section class="detail-block">
+          <h3>中文翻译</h3>
+          <p>${article.chineseText}</p>
+        </section>
+
+        <section class="detail-block">
+          <h3>内容解读</h3>
+          <ul>${article.interpretation.map((item) => `<li>${item}</li>`).join("")}</ul>
+        </section>
+
+        <section class="detail-block">
+          <h3>适用材料</h3>
+          <div class="badge-row">${materialNames.map((name) => `<span class="badge">${name}</span>`).join("")}</div>
+        </section>
+
+        <section class="detail-block">
+          <h3>适用场景</h3>
+          <div class="badge-row">${scenarioNames.map((name) => `<span class="badge">${name}</span>`).join("")}</div>
+        </section>
+
+        <section class="detail-block">
+          <h3>适用时间</h3>
+          <p>${article.timeline}</p>
+        </section>
+
+        <section class="detail-block">
+          <h3>例外 / 备注</h3>
+          <ul>${article.exceptions.map((item) => `<li>${item}</li>`).join("")}</ul>
+        </section>
+
+        <section class="detail-block">
+          <h3>链接</h3>
+          <div class="detail-links">
+            <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R0040" target="_blank" rel="noreferrer">查看官方法规原文（欧盟法律数据库）</a>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderGenericDetail(node) {
+      let source = null;
+      if (node.type === "material") source = db.materials.find((item) => item.id === node.id);
+      if (node.type === "scenario") source = db.scenarios.find((item) => item.id === node.id);
+      if (node.type === "guide") source = db.judgementGuide.find((item) => item.id === node.id);
+      if (node.type === "topic") source = db.otherTopics.find((item) => item.id === node.id);
+      if (node.type === "root") source = rootNodes.find((item) => item.id === node.id);
+
+      const kindLabel = node.type === "material" ? "材料" :
+        node.type === "scenario" ? "场景" :
+        node.type === "guide" ? "判断图例" :
+        node.type === "topic" ? "专题问题" :
+        "主题";
+
+      const articleIds = source?.relatedArticles || source?.children || [];
+      const childNodes = (node.children || []).map((id) => nodeMap.get(id)).filter(Boolean);
+
+      el.detail.innerHTML = `
+        <section class="detail-hero">
+          <span class="kind ${getKindClass(node.type)}">${kindLabel}</span>
+          ${node.badges && node.badges.length ? `<div class="badge-row" style="margin-top: 10px;">${node.badges.map((badge) => `<span class="badge">${badge}</span>`).join("")}</div>` : ""}
+          <h2>${node.title}</h2>
+          <p>${node.summary}</p>
+        </section>
+
+        ${node.type === "material" ? `
+        <section class="detail-block">
+          <h3>综合说明</h3>
+          <p>${node.summary}</p>
+        </section>` : ""}
+
+        <section class="detail-block">
+          <h3>下一步入口</h3>
+          <div class="detail-links">
+            ${childNodes.length ? childNodes.map((child) => `<button type="button" data-node="${child.id}">${child.label}</button>`).join("") : `<span class="muted">已经到最后一级。</span>`}
+          </div>
+        </section>
+
+        <section class="detail-block">
+          <h3>对应章节</h3>
+          <div class="detail-links">
+            ${buildArticleButtons(articleIds)}
+          </div>
+        </section>
+
+        <section class="detail-block">
+          <h3>如何使用这个节点</h3>
+          <ul>
+            <li>先看这个节点的逻辑位置，而不是立即跳到所有条文。</li>
+            <li>再点击“对应章节”，进入最后一级查看英文内容、中文翻译和解读。</li>
+            <li>如果你要继续展开结构，点“下一步入口”即可。</li>
+          </ul>
+        </section>
+      `;
+      bindDetailEvents();
+    }
+
+    function renderDetail() {
+      const current = currentNode();
+      if (!current) {
+        el.detail.innerHTML = `
+          <div class="empty">
+            <div>
+              <h3>请选择一个主题</h3>
+              <p>可从材料库、场景要求、判断方式、专题问题或条文目录进入浏览。</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (current.type === "article") {
+        const article = db.articles.find((item) => item.id === current.id);
+        renderArticleDetail(article);
+        return;
+      }
+
+      renderGenericDetail(current);
+    }
+
+    function render() {
+      renderHero();
+      renderBreadcrumb();
+      renderFlowHeader();
+      renderFocusCard();
+      renderNodes();
+      renderDetail();
+    }
+
+    el.goHome.addEventListener("click", goHome);
+    el.goUp.addEventListener("click", goUp);
+
+    render();
+  </script>
+</body>
+</html>
